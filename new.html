@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+
+<!--
+    A 3D LIBRARY BY ARROWHEAD CO.
+    Edited by CAJ Engineering
+    
+    All the [unedited] code is owned and
+    created by ARROWHEAD CO.
+    and is freely available on github.
+    Use the links below to access the
+    scripts any time.
+    
+    Subscribe! (to ARROWHEAD CO.)
+        https://www.khanacademy.org/computer-programming/subscribe-to-arrowhead-co/6260274198511616
+    More stuff! (by ARROWHEAD CO.)
+        https://www.khanacademy.org/profile/modavid/projects
+        
+        I plan to make this into a game...
+        
+        https://www.khanacademy.org/computer-programming/new-3d-game/6735554709962752
+        
+        Press 'e' for help.
+        
+        Additions:
+        
+            V1.1 - Update 3D world.
+            V1.2 - Add mega jump.
+            V1.3 - Add mega speed.
+            v1.4 - Add fly mode.
+            v1.5 - Update fly mode.
+            
+            View full screen at: cajengineering.github.io
+        
+-->
+
+<html>
+	<head>
+		<title>CAJ Engineering | ArrowheadCo. 3D Engine</title>
+
+		<meta charset = "utf-8">
+
+		<meta name = "author" content = "Arrowhead Co.">
+		<meta name = "description" content = "Custom 3D Engine">
+
+		<style>
+			* {
+				box-sizing : border-box;
+
+				margin :  0;
+				padding : 0;
+
+				overflow : hidden;
+			}
+
+			#fps {
+				position : fixed;
+
+				top :  0;
+				left : 0;
+
+				height : 50px;
+
+				padding-top : 10px;
+				padding-left : 20px;
+
+				color : white;
+
+				font-size : 25px;
+				font-family : Russo One;
+			}
+			
+			canvas {
+			    top : 0px;
+			    position : fixed;
+			}
+			
+			#under {
+			    top : 100px;
+			    position : fixed;
+			    font-size : 50px;
+			}
+		</style>
+	</head>
+
+	<body id = "body">
+	    <div id = "under">Please refresh the window</div>
+		<canvas id = "canvas">
+			Please reload the page!
+		</canvas>
+
+		<!--STANDARD LIBRARY-->
+
+		<!--Canvas Fixing-->
+		<script src = "https://cdn.jsdelivr.net/gh/ArrowheadCo/Standard_v1.0/canvas.js"></script>
+
+		<!--User Input-->
+		<script src = "https://cdn.jsdelivr.net/gh/ArrowheadCo/Standard_v1.0/input.js"></script>
+
+		<!--2D Graphics Library-->
+		<script src = "https://cdn.jsdelivr.net/gh/ArrowheadCo/Standard_v1.0/graphics.js"></script>
+
+		<!--Sound Library-->
+		<script src = "https://cdn.jsdelivr.net/gh/ArrowheadCo/Standard_v1.0/audio.js"></script>
+
+		<!--Time Library-->
+		<script src = "https://cdn.jsdelivr.net/gh/ArrowheadCo/Standard_v1.0/time.js"></script>
+
+		<!--ENGINE3D LIBRARY-->
+
+		<!--Vector Library-->
+		<script src = "https://cdn.jsdelivr.net/gh/ArrowheadCo/Engine3D_v1.0/vector.js"></script>
+
+		<!--Matrix Library-->
+		<script src = "https://cdn.jsdelivr.net/gh/ArrowheadCo/Engine3D_v1.0/matrix.js"></script>
+
+		<!--Primitive Library-->
+		<script src = "https://cdn.jsdelivr.net/gh/ArrowheadCo/Engine3D_v1.0/primitive.js"></script>
+
+		<!--MAIN LIBRARIES-->
+
+		<!--3D Camera-->
+		<script src = "https://cdn.jsdelivr.net/gh/ArrowheadCo/Engine3D_v1.0/camera.js"></script>
+
+		<!--3D Engine-->
+		<script src = "https://cdn.jsdelivr.net/gh/ArrowheadCo/Engine3D_v1.0/main.js"></script>
+
+		<!--MECH Engine-->
+		<script src = "https://cdn.jsdelivr.net/gh/ArrowheadCo/EngineMECH_v1.0/main.js"></script>
+
+		<!--Object3D Library-->
+		<script src = "https://cdn.jsdelivr.net/gh/ArrowheadCo/EngineMECH_v1.0/object.js"></script>
+
+		<!--Game Engine-->
+		<script>
+		
+		Engine3D.order = function(){
+
+	//Sorts primitives based on z
+	this.clipped3DPrimitives.sort(function(a, b){
+		let bDepth = 0,
+			aDepth = 0,
+
+			bCenter = 0,
+			aCenter = 0;
+
+		//Uses their midpoints for reference
+		for(let i = 0; i < b.vectors.length; i++){
+			bDepth = Math.max(bDepth,
+				 	 Vector.sub(b.vectors[i],
+				 	 Camera.pos).mag());
+		}
+		for(let i = 0; i < a.vectors.length; i++){
+			aDepth = Math.max(aDepth,
+				 	 Vector.sub(a.vectors[i],
+				 	 Camera.pos).mag());
+		}
+
+		bCenter = Vector.sub(b.center, Camera.pos).mag();
+		aCenter = Vector.sub(a.center, Camera.pos).mag();
+
+		return (bCenter - aCenter) ||  (bDepth - aDepth);
+	});
+
+	return this;
+};
+		
+		    	/*PRE-CONS*/
+		    	
+		    	//[EH] For some reason, Arrowhead Co. didn't provide a line function. So I did here.
+		    	function line(x, y, x2, y2){
+    	            ctx.beginPath();
+    	            ctx.moveTo(x,     y);
+	                ctx.lineTo(x2, y2);
+	                ctx.stroke();
+                };
+                //For the sine
+                
+                var millis=function(){
+                return( Date.now() );
+                }
+	
+                var preset = function(){
+                	noStroke();
+                	noFill();
+                
+                	fontDefine("Russo One", "Londrina Solid");
+                };
+                
+                preset();
+                
+                	/*GAME CONSTANTS*/
+                
+                	var 
+                BULLET_SPEED = 10,
+                GRAVITY		 = 2 / 300,
+                
+                PALETTE = [
+                	
+                ];
+                
+                	/*PLAYER*/
+                
+                var player = {
+                	x : 4.0, y : 0.0, z : 4.0,
+                	w : 0.7, h : 2.8, l : 0.7,
+                
+                	prev : {
+                		x : 0, y : 0, z : 0,
+                	},
+                
+                	fov :   Math.PI / 2,
+                
+                	yaw :   0,    pitch : 0,
+                	speed : 0.10, megaSpeed : 1,
+                	jump :  0, megaJump : 0,
+                	canJump : false,
+                };
+                
+                player.control = function(){
+                	//Mouse control
+                	this.yaw -=   mouse.dx * Math.PI / 1000 * TIME.dt;
+                	this.pitch -= mouse.dy * Math.PI / 1000 * TIME.dt;
+    //[EH] Keep the rotation from going past PI or below 0, this simplafies direction detection.
+    if(this.yaw>Math.PI*2){this.yaw=0;}          
+    if(this.yaw<0){this.yaw=Math.PI*2;}      
+                	this.pitch = Math.min(
+                				 Math.max(this.pitch, -Math.PI / 2.35),	
+                				 					   Math.PI / 2.35);
+                
+                	this.prev.x = this.x;
+                	this.prev.y = this.y;
+                	this.prev.z = this.z;
+                	
+                	//Key control
+                	if(keys.UP || keys.W){
+                		this.z += this.speed *  Math.cos(this.yaw) * TIME.dt;
+                		this.x += this.speed * -Math.sin(this.yaw) * TIME.dt;
+                	}
+                	
+                	if(keys.R){
+                		this.z += this.megaSpeed *  Math.cos(this.yaw) * TIME.dt;
+                		this.x += this.megaSpeed * -Math.sin(this.yaw) * TIME.dt;
+                	}
+                	
+                	if(keys.DOWN || keys.S){
+                		this.z -= this.speed *  Math.cos(this.yaw) * TIME.dt;
+                		this.x -= this.speed * -Math.sin(this.yaw) * TIME.dt;
+                	}
+                
+                	if(keys.RIGHT || keys.D){
+                		this.z += this.speed *  Math.sin(this.yaw) * TIME.dt;
+                		this.x += this.speed *  Math.cos(this.yaw) * TIME.dt;
+                	}
+                	if(keys.LEFT || keys.A){
+                		this.z -= this.speed *  Math.sin(this.yaw) * TIME.dt;
+                		this.x -= this.speed *  Math.cos(this.yaw) * TIME.dt;
+                	}
+                	
+                    
+                	if(keys.SPACE  && this.canJump){
+                		this.jump =    -0.1;
+                		this.canJump = false;
+                	}
+                	
+                	if(keys.F  && this.canJump){
+                		this.megaJump =    -0.1;
+                		this.canJump = false;
+                	}
+                	
+                	if(keys.C){
+                	    
+                	   this.canJump = false;
+                	   this.y = 0.10;
+                	   GRAVITY = 0;
+                	    
+                	}if(keys.V){
+                	    
+                	    this.canJump = true;
+                	    GRAVITY = 2/300;
+                	    
+                	}
+                	
+                	if(keys.SHIFTLEFT || 
+                	   keys.SHIFTRIGHT){
+                		this.y += this.speed * TIME.dt;
+                	}
+                
+                	if(!this.canJump || !this.collide){
+                	    //[EH] I wanted faster gravity for more realisum.
+                		this.jump += GRAVITY * TIME.dt*1;
+                		this.y +=    this.jump * TIME.dt*1;
+                
+                		this.canJump = false;
+                	} else {
+                		if(this.collide){
+                			this.jump = 0;
+                		}
+                	}
+                	
+                	if(!this.canJump || !this.collide){
+                	    //[EH] I wanted faster gravity for more realisum.
+                		this.megaJump += GRAVITY * TIME.dt*0.1;
+                		this.y +=    this.megaJump * TIME.dt*3.0;
+                
+                		this.canJump = false;
+                	} else {
+                		if(this.collide){
+                			this.megaJump = 0;
+                		}
+                	}
+                	
+                	if(this.y > 50){
+                	    this.x = 2.5;
+                	    this.z = 2.5;
+                	    this.y = -10;
+                	}
+                };
+                
+                	/*GAME ASSETS*/
+                
+                var Block = function(x, y, z, w, h, l, id, type){
+                	this.x = x;
+                	this.y = y;
+                	this.z = z;
+                
+                	this.w = w;
+                	this.h = h;
+                	this.l = l;
+                
+                	this.id = id;
+                
+                	method = "";
+                
+                	if(type === "none"){
+                		method = "none";
+                	} else if(type === "liquid"){
+                		method = "cuboidVcuboid";
+                	} else {
+                		method = "collisionAdjust";
+                	}
+                
+                	this.method = method;
+                };
+                
+                Block.prototype.update = function(){
+                	Object3D.Cuboid(
+                		this.x, this.y, this.z,
+                		this.w, this.h, this.l,
+                		PALETTE[this.id]);
+                };
+                
+                //In case of long loops
+                var resetTimer = function (n) {
+                    var setInf = "KAInfiniteLoopSetTimeout";
+                    
+                    if (setInf in this) {
+                        if(typeof this[setInf] === "function"){
+                            this[setInf](n);
+                        }
+                    }
+                };
+                
+                	/*GAME FUNCTION*/
+               var frameCount=0;
+               function game(){
+                    try {
+                        frameCount++;
+                        resetTimer(Math.POSITIVE_INFINITY);
+                    	requestAnimationFrame(game);
+                    
+                    	TIME.update();
+                    	//[EH] I might look into an alternative for this, it lacks an outline, which all other text has.
+                    	TIME.fpsCounter("white");
+                    
+                    	EngineMECH.revert();
+                    	Engine3D.revert();
+                    
+                    	background(100, 200, 255);
+                    	
+                    	noStroke();
+                    	for(var i=1;i<500;i+=i/10){
+                    	    fill(0, 100, 150,20);
+                    	ellipse(width/2,height*2+(player.pitch*height),width*3,height+i);
+                    	fill(0, 50, 100,20);
+                    	ellipse(width/2,height*2.5+(player.pitch*height),width*3,height+i);
+                    	fill(150, 255, 255,20);
+                    	ellipse(width/2,-height+(player.pitch*height),width*3,height+i);
+                    	}
+                    
+                    	
+                    	//[EH] New Demo world
+                    	
+                    	//grass
+                    	Object3D.Cuboid(
+                    		6.0, 15, 5,
+                    		14, 20,30,
+                    		color(150, 200, 150),
+                    		0, 0, 0,
+                    	"block","collisionAdjust");
+                    	
+                    	Object3D.Cuboid(
+                    		43, 15, 5,
+                    		14, 20,30,
+                    		color(150, 200, 150),
+                    		0, 0, 0,
+                    	"block","collisionAdjust");
+                    	
+                    	//bridge
+                    	
+                    	Object3D.Cuboid(
+                    		24, 4.75, 5,
+                    		25, 0.5,1,
+                    		color(255, 200, 100),
+                    		0, 0, 0,
+                    	"block","collisionAdjust");
+                    	
+                    	Object3D.Cuboid(
+                    		100, 4.75, 5,
+                    		100, 0.5,1,
+                    		color(255, 200, 100),
+                    		0, 0, 0,
+                    	"block","collisionAdjust");
+                    	
+                    	Object3D.Cuboid(
+                    		250, 5, 5,
+                    		200, 0.5, 200,
+                    		color(230, 200, 150),
+                    		0, 0, 0,
+                    	"block","collisionAdjust");
+                    	
+                    	Light.update();
+                    	Camera.update();
+                    	Camera.FPSfollow(player);
+                    
+                    	player.control();
+                    
+                    	EngineMECH.run(player);
+                    	Engine3D.render();
+                    
+                        
+                    
+                    	fill(255);
+                    	stroke(50);
+                    	//[EH] Changed the credits and layout to fit better and look nicer.
+                    	font("Londrina Solid", width / 20);
+                    	align("RIGHT", "CENTER");
+                    	text("Engine3D Open Source", width/1.02, height/20, 1);
+                        fill(225);
+                        font("Russo One", width / 40);
+                        text("ENGINE: Arrowhead Co.", width/1.02, height/10, 1);
+                        text("Edited by:CAJ ENGINEERING", width/1.02, height/6.52, 1);
+                        text("", width/1.02, height/5.03, 1);
+                        
+                        
+                        align("RIGHT", "CENTER");
+                        
+                        text("Press 'e' for help.", width/1.02, height/5.02, 1);
+                        
+                        if(keys.E){
+                            
+                            align("LEFT", "CENTER");
+                            
+                            text("Mouse to move view [ESC]", width/100 , height/1.21, 1);
+                            text("Arrow / WASD + SPACE to move,", width/100 , height/1.14, 1);
+                            
+                            text("Press 'f' for Mega Jump and 'r' for Mega Speed", width/100 , height/1.08, 1);
+                            
+                            text("Press 'c' to fly and 'v' to land.", width/100 , height/1.02, 1);
+                        }
+                    
+                        align("RIGHT", "CENTER");
+                        text("Engine v1.0 | CAJ Mod v1.4", width/1.02, height/1.02, 1);
+                        
+                        align("CENTER", "CENTER");
+                        font("arial", width/20);
+                        
+                        text("+", width/2, height/2, 1);
+                        
+                    	mouse.reset();
+                    } catch(err){
+                        throw "Please reload the page"
+                    }
+                };
+                
+                game();
+		</script>
+	</body>
+</html>
